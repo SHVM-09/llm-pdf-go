@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Design PDF Analysis Viewer</title>
+    <!-- Marked.js for markdown rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/marked@11.1.1/marked.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+            padding: 20px;
+            color: #1a1a1a;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 2px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+            border: 1px solid #e0e0e0;
+        }
+
+        .header {
+            background: #1a1a1a;
+            color: white;
+            padding: 40px 30px;
+            text-align: center;
+            border-bottom: 1px solid #2a2a2a;
+        }
+
+        .header h1 {
+            font-size: 2em;
+            margin-bottom: 8px;
+            font-weight: 300;
+            letter-spacing: -0.5px;
+        }
+
+        .header p {
+            opacity: 0.8;
+            font-size: 0.95em;
+            font-weight: 300;
+            letter-spacing: 0.3px;
+        }
+
+        .file-input-section {
+            padding: 40px 30px;
+            background: #fafafa;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .file-input-wrapper {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .file-input-wrapper input[type="file"] {
+            flex: 1;
+            padding: 12px 16px;
+            border: 1px solid #d0d0d0;
+            border-radius: 2px;
+            background: white;
+            font-size: 14px;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+
+        .file-input-wrapper input[type="file"]:hover {
+            border-color: #1a1a1a;
+        }
+
+        .file-input-wrapper button {
+            padding: 12px 32px;
+            background: #1a1a1a;
+            color: white;
+            border: none;
+            border-radius: 2px;
+            font-size: 14px;
+            font-weight: 400;
+            cursor: pointer;
+            transition: background 0.2s;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            font-size: 12px;
+        }
+
+        .file-input-wrapper button:hover {
+            background: #2a2a2a;
+        }
+
+        .summary-section {
+            padding: 48px 40px;
+            background: white;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .summary-section h2 {
+            font-size: 1.1em;
+            font-weight: 400;
+            color: #1a1a1a;
+            margin-bottom: 32px;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 16px;
+        }
+
+        .summary-card {
+            background: #fafafa;
+            padding: 28px 24px;
+            border-radius: 2px;
+            border: 1px solid #e0e0e0;
+            text-align: left;
+            transition: all 0.2s ease;
+        }
+
+        .summary-card:hover {
+            border-color: #1a1a1a;
+            background: #f5f5f5;
+            transform: translateY(-2px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        .summary-card .label {
+            font-size: 0.75em;
+            color: #666;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            font-weight: 500;
+        }
+
+        .summary-card .value {
+            font-size: 1.6em;
+            font-weight: 300;
+            color: #1a1a1a;
+            letter-spacing: -0.4px;
+            line-height: 1.2;
+        }
+
+        .summary-card .value.cost {
+            color: #1a1a1a;
+            font-weight: 400;
+        }
+
+        .chunks-section {
+            padding: 48px 40px;
+            background: white;
+        }
+
+        .chunks-section h2 {
+            font-size: 1.1em;
+            font-weight: 400;
+            color: #1a1a1a;
+            margin-bottom: 32px;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+        }
+
+        .page-analysis {
+            margin-bottom: 64px;
+        }
+
+        .page-analysis:last-child {
+            margin-bottom: 0;
+        }
+
+        .chunk-header {
+            background: #fafafa;
+            padding: 28px 32px;
+            border-radius: 2px;
+            margin-bottom: 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 32px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .chunk-header-info {
+            display: flex;
+            gap: 30px;
+            flex-wrap: wrap;
+        }
+
+        .chunk-header-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chunk-header-item .label {
+            font-size: 0.75em;
+            color: #666;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            font-weight: 500;
+        }
+
+        .chunk-header-item .value {
+            font-size: 1.1em;
+            font-weight: 300;
+            color: #1a1a1a;
+            letter-spacing: -0.2px;
+        }
+
+        .analysis-content {
+            background: white;
+            padding: 48px;
+            border-radius: 2px;
+            border: 1px solid #e0e0e0;
+            line-height: 1.8;
+            color: #1a1a1a;
+            max-width: 100%;
+            overflow-x: auto;
+        }
+
+        .analysis-content h1 {
+            color: #1a1a1a;
+            font-size: 2em;
+            margin-bottom: 32px;
+            margin-top: 0;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #1a1a1a;
+            font-weight: 300;
+            letter-spacing: -0.8px;
+        }
+
+        .analysis-content h2 {
+            color: #1a1a1a;
+            font-size: 1.6em;
+            margin-top: 48px;
+            margin-bottom: 24px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #e0e0e0;
+            font-weight: 400;
+            letter-spacing: -0.4px;
+        }
+
+        .analysis-content h3 {
+            color: #1a1a1a;
+            font-size: 1.3em;
+            margin-top: 32px;
+            margin-bottom: 16px;
+            font-weight: 500;
+            letter-spacing: -0.2px;
+        }
+
+        .analysis-content h4 {
+            color: #333;
+            font-size: 1.1em;
+            margin-top: 24px;
+            margin-bottom: 12px;
+            font-weight: 500;
+        }
+
+        .analysis-content ul, .analysis-content ol {
+            margin: 20px 0;
+            padding-left: 32px;
+        }
+
+        .analysis-content ul li {
+            list-style-type: disc;
+            margin: 10px 0;
+            line-height: 1.7;
+        }
+
+        .analysis-content ol li {
+            list-style-type: decimal;
+            margin: 10px 0;
+            line-height: 1.7;
+        }
+
+        .analysis-content ul ul, .analysis-content ol ol,
+        .analysis-content ul ol, .analysis-content ol ul {
+            margin-top: 8px;
+            margin-bottom: 8px;
+        }
+
+        .analysis-content code {
+            background: #f5f5f5;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Courier New', monospace;
+            font-size: 0.9em;
+            color: #1a1a1a;
+            border: 1px solid #e0e0e0;
+        }
+
+        .analysis-content pre {
+            background: #fafafa;
+            padding: 24px;
+            border-radius: 2px;
+            overflow-x: auto;
+            border: 1px solid #e0e0e0;
+            margin: 24px 0;
+            line-height: 1.6;
+        }
+
+        .analysis-content pre code {
+            background: transparent;
+            padding: 0;
+            border: none;
+            font-size: 0.9em;
+        }
+
+        .analysis-content hr {
+            border: none;
+            border-top: 1px solid #e0e0e0;
+            margin: 40px 0;
+        }
+
+        /* Table styling */
+        .analysis-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 32px 0;
+            font-size: 0.95em;
+            background: white;
+            border: 1px solid #e0e0e0;
+        }
+
+        .analysis-content table thead {
+            background: #fafafa;
+            border-bottom: 2px solid #1a1a1a;
+        }
+
+        .analysis-content table th {
+            padding: 16px 20px;
+            text-align: left;
+            font-weight: 600;
+            color: #1a1a1a;
+            text-transform: uppercase;
+            font-size: 0.85em;
+            letter-spacing: 0.5px;
+            border-right: 1px solid #e0e0e0;
+        }
+
+        .analysis-content table th:last-child {
+            border-right: none;
+        }
+
+        .analysis-content table td {
+            padding: 14px 20px;
+            border-bottom: 1px solid #f0f0f0;
+            border-right: 1px solid #f0f0f0;
+            color: #333;
+            vertical-align: top;
+        }
+
+        .analysis-content table td:last-child {
+            border-right: none;
+        }
+
+        .analysis-content table tbody tr:hover {
+            background: #fafafa;
+        }
+
+        .analysis-content table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* Blockquote styling */
+        .analysis-content blockquote {
+            border-left: 3px solid #1a1a1a;
+            margin: 24px 0;
+            padding: 16px 24px;
+            background: #fafafa;
+            font-style: italic;
+            color: #555;
+        }
+
+        .analysis-content strong {
+            color: #1a1a1a;
+            font-weight: 600;
+        }
+
+        .analysis-content em {
+            color: #555;
+            font-style: italic;
+        }
+
+        .analysis-content p {
+            margin-bottom: 20px;
+            color: #333;
+            line-height: 1.8;
+        }
+
+        .analysis-content p:last-child {
+            margin-bottom: 0;
+        }
+
+        /* Better spacing for nested content */
+        .analysis-content > *:first-child {
+            margin-top: 0;
+        }
+
+        .analysis-content > *:last-child {
+            margin-bottom: 0;
+        }
+
+        .error-message {
+            background: #fafafa;
+            color: #1a1a1a;
+            padding: 20px;
+            border-radius: 2px;
+            margin: 20px;
+            border: 1px solid #d0d0d0;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 50px;
+            color: #6c757d;
+            font-size: 1.2em;
+        }
+
+        .no-data {
+            text-align: center;
+            padding: 60px;
+            color: #666;
+            font-weight: 300;
+        }
+
+        /* Smooth scrolling */
+        html {
+            scroll-behavior: smooth;
+        }
+
+        /* Selection styling */
+        ::selection {
+            background: #1a1a1a;
+            color: white;
+        }
+
+        /* Focus states for accessibility */
+        .file-input-wrapper input[type="file"]:focus,
+        .file-input-wrapper button:focus {
+            outline: 2px solid #1a1a1a;
+            outline-offset: 2px;
+        }
+
+
+        /* Loading state */
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #e0e0e0;
+            border-top-color: #1a1a1a;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Print styles */
+        @media print {
+            body {
+                background: white;
+            }
+            .container {
+                box-shadow: none;
+                border: none;
+            }
+            .file-input-section {
+                display: none;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.8em;
+            }
+
+            .summary-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .chunk-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .analysis-content {
+                padding: 24px;
+            }
+
+            .analysis-content table {
+                font-size: 0.85em;
+            }
+
+            .analysis-content table th,
+            .analysis-content table td {
+                padding: 10px 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Design PDF Analysis Viewer</h1>
+            <p>View and analyze your PDF design document analysis results</p>
+        </div>
+
+        <div class="file-input-section">
+            <div class="file-input-wrapper">
+                <input type="file" id="jsonFileInput" accept=".json" />
+                <button onclick="loadJSONFile()">Load Analysis</button>
+            </div>
+        </div>
+
+        <div id="contentArea">
+            <div class="no-data">
+                <p>Please select a JSON analysis file to view the results.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let analysisData = null;
+
+        // Auto-load if JSON file is in the same directory
+        window.addEventListener('DOMContentLoaded', () => {
+            // Try to auto-load common JSON filenames
+            const commonNames = [
+                'v6truboEngine_analysis.json',
+                'analysis.json',
+                'result.json'
+            ];
+            
+            // Check if we're viewing a specific file
+            const urlParams = new URLSearchParams(window.location.search);
+            const jsonFile = urlParams.get('file');
+            
+            if (jsonFile) {
+                loadJSONFromPath(jsonFile);
+            }
+        });
+
+        document.getElementById('jsonFileInput').addEventListener('change', function(e) {
+            if (e.target.files.length > 0) {
+                loadJSONFile();
+            }
+        });
+
+        function loadJSONFile() {
+            const fileInput = document.getElementById('jsonFileInput');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                alert('Please select a JSON file');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    analysisData = JSON.parse(e.target.result);
+                    displayAnalysis(analysisData);
+                } catch (error) {
+                    showError('Error parsing JSON file: ' + error.message);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function loadJSONFromPath(path) {
+            fetch(path)
+                .then(response => {
+                    if (!response.ok) throw new Error('File not found');
+                    return response.json();
+                })
+                .then(data => {
+                    analysisData = data;
+                    displayAnalysis(data);
+                })
+                .catch(error => {
+                    showError('Error loading JSON file: ' + error.message);
+                });
+        }
+
+        function displayAnalysis(data) {
+            const contentArea = document.getElementById('contentArea');
+            
+            if (!data || !data.chunks) {
+                showError('Invalid analysis data format');
+                return;
+            }
+
+            let html = '';
+
+            // Summary Section
+            html += '<div class="summary-section">';
+            html += '<h2>Analysis Summary</h2>';
+            html += '<div class="summary-grid">';
+            html += `<div class="summary-card"><div class="label">PDF File</div><div class="value" style="font-size: 1em;">${escapeHtml(data.pdf_path)}</div></div>`;
+            html += `<div class="summary-card"><div class="label">Total Pages</div><div class="value">${data.total_pages}</div></div>`;
+            html += `<div class="summary-card"><div class="label">Total Chunks</div><div class="value">${data.total_chunks}</div></div>`;
+            html += `<div class="summary-card"><div class="label">Input Tokens</div><div class="value">${data.total_input_tokens.toLocaleString()}</div></div>`;
+            html += `<div class="summary-card"><div class="label">Output Tokens</div><div class="value">${data.total_output_tokens.toLocaleString()}</div></div>`;
+            html += `<div class="summary-card"><div class="label">Total Cost</div><div class="value cost">$${data.total_cost.toFixed(6)}</div></div>`;
+            html += `<div class="summary-card"><div class="label">Processing Time</div><div class="value">${data.processing_time}</div></div>`;
+            html += '</div></div>';
+
+            // Pages Section - Display all pages sequentially
+            html += '<div class="chunks-section">';
+            html += '<h2>Page-by-Page Analysis</h2>';
+
+            // Display each page sequentially (no tabs)
+            data.chunks.forEach((chunk, index) => {
+                html += `<div class="page-analysis" style="margin-bottom: 64px;">`;
+                
+                // Page Header
+                html += '<div class="chunk-header">';
+                html += '<div class="chunk-header-info">';
+                if (chunk.start_page === chunk.end_page) {
+                    html += `<div class="chunk-header-item"><div class="label">Page</div><div class="value">${chunk.start_page}</div></div>`;
+                } else {
+                    html += `<div class="chunk-header-item"><div class="label">Pages</div><div class="value">${chunk.start_page} - ${chunk.end_page}</div></div>`;
+                }
+                html += `<div class="chunk-header-item"><div class="label">Input Tokens</div><div class="value">${chunk.input_tokens.toLocaleString()}</div></div>`;
+                html += `<div class="chunk-header-item"><div class="label">Output Tokens</div><div class="value">${chunk.output_tokens.toLocaleString()}</div></div>`;
+                html += `<div class="chunk-header-item"><div class="label">Cost</div><div class="value">$${chunk.total_cost.toFixed(6)}</div></div>`;
+                html += `<div class="chunk-header-item"><div class="label">Processing Time</div><div class="value">${chunk.processing_time}</div></div>`;
+                html += '</div>';
+                html += '</div>';
+
+                // Analysis Content
+                html += '<div class="analysis-content">';
+                html += convertMarkdownToHTML(chunk.analysis);
+                html += '</div>';
+
+                html += '</div>';
+            });
+
+            html += '</div>';
+            contentArea.innerHTML = html;
+        }
+
+
+        function convertMarkdownToHTML(markdown) {
+            if (!markdown) return '';
+            
+            // Check if marked library is available
+            if (typeof marked === 'undefined') {
+                console.error('Marked.js library not loaded. Falling back to basic rendering.');
+                // Fallback: basic HTML escaping
+                const div = document.createElement('div');
+                div.textContent = markdown;
+                return '<pre>' + div.innerHTML + '</pre>';
+            }
+
+            // Configure marked options
+            marked.setOptions({
+                breaks: true,        // Convert line breaks to <br>
+                gfm: true,          // GitHub Flavored Markdown
+                headerIds: true,    // Add IDs to headers
+                mangle: false,      // Don't mangle email addresses
+                pedantic: false,    // Don't be pedantic
+                sanitize: false,    // Don't sanitize (we trust the content)
+                smartLists: true,   // Use smart list behavior
+                smartypants: false  // Don't use smartypants
+            });
+
+            // Convert markdown to HTML
+            try {
+                return marked.parse(markdown);
+            } catch (error) {
+                console.error('Error parsing markdown:', error);
+                // Fallback: return escaped text
+                const div = document.createElement('div');
+                div.textContent = markdown;
+                return '<pre>' + div.innerHTML + '</pre>';
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function showError(message) {
+            const contentArea = document.getElementById('contentArea');
+            contentArea.innerHTML = `<div class="error-message">${escapeHtml(message)}</div>`;
+        }
+    </script>
+</body>
+</html>
+
